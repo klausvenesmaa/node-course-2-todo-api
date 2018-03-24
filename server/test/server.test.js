@@ -10,7 +10,9 @@ const todos =[{
   text: 'First test todo'
 }, {
   _id: new ObjectID(),
-  text: 'Second test todo'
+  text: 'Second test todo',
+  completed: true,
+  completedAt: 111
 }];
 
 beforeEach((done) => {
@@ -152,5 +154,62 @@ describe('DELETE /todos/:id', () => {
         expect(res.body).toMatchObject({});
       })
       .end(done);
+  });
+});
+
+describe('PATCH /todos/:id', () => {
+  it('should update the todo', (done) => {
+    var hexId = todos[0]._id.toHexString();
+    var text = 'Updated';
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({text, completed: true})
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toEqual(expect.any(Number));
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo.text).toBe(text);
+          expect(todo.completed).toBe(true);
+          expect(todo.completedAt).toEqual(expect.any(Number));
+        }).catch((e) => done(e));
+        done();
+      });
+  });
+
+  it('should clear completedAt when todo is not completed', (done) => {
+    var hexId = todos[1]._id.toHexString();
+    var text = 'Updated again';
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({text, completed: false})
+      .expect(200)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toBeNull();
+
+        Todo.findById(hexId).then((todo) => {
+            expect(todo.text).toBe(text);
+            expect(todo.completed).toBe(false);
+            expect(todo.completedAt).toBeNull();
+        }).catch((e) => done(e));
+        done();
+      });
+    // update text, set completed to false
+    // 200
+    // text is changed, completed is false, completedAt is null
   });
 });
